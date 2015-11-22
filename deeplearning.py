@@ -67,7 +67,7 @@ def forward(X):
     return z
 
 
-def backward(X, T):
+def forward_backward(X, T):
     assert X.shape == T.shape
     assert X.shape[0] == W[0].shape[1]
 
