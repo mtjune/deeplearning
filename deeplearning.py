@@ -68,7 +68,6 @@ def forward(X):
 
 
 def forward_backward(X, T):
-    assert X.shape == T.shape
     assert X.shape[0] == W[0].shape[1]
 
     u = W[0].dot(X) + B[0]
@@ -83,13 +82,33 @@ def forward_backward(X, T):
         Z.append(z)
 
 
-    delta = [None] * len(W)
-    delta[-1] = T - Z[-1]
-    dW = delta[-1].dot(Z[-2].T())
-    W[-1] += - esp * dW
+    # 中間層がある場合とない場合に分け
+    if len(W) > 1:
+        # 中間層がある場合
 
-    for l in range(1, len(W) - 1)[::-1]:
+        # 出力層の重み
+        delta = [None] * len(W)
+        delta[-1] = T - Z[-1]
+        dW = delta[-1].dot(Z[-2].T())
+        W[-1] += - esp * dW
 
+        # 中間層の重み
+        for l in range(1, len(W) - 1)[::-1]:
+            delta[l]
+            dW = delta[l].dot(Z[l-1].T())
+            W[l] += -esp * dW
+
+        # 入力層の重み
+        delta[0]
+        dW = delta[0].dot(X.T())
+        W[0] += -esp * dW
+
+    else:
+        # 中間層がない場合
+
+        delta = [T - Z[0]]
+        dW = delta[0].dot(X.T())
+        W[0] += -esp * dW
 
 
 
