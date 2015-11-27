@@ -133,7 +133,7 @@ def forward_backward(X, T):
 
 if __name__ == '__main__':
 
-    n_epoch = 10
+    n_epoch = 50
     batchsize = 100
 
     mnist = fetch_mldata('MNIST original', data_home=".")
@@ -181,5 +181,5 @@ if __name__ == '__main__':
 
             print("{} / {}\t{}".format((epoch - 1) * N + (i + 1) * batchsize, n_epoch * N, sumerr))
 
-        pickle.dump(W, open("W.dump", "wb"), -1)
-        pickle.dump(B, open("B.dump", "wb"), -1)
+        pickle.dump(W, open("W1.dump", "wb"), -1)
+        pickle.dump(B, open("B1.dump", "wb"), -1)
