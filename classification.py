@@ -5,6 +5,7 @@ import time
 import six.moves.cPickle as pickle
 from sklearn.datasets import fetch_mldata
 import pylab
+import math
 
 # 活性化関数
 # ReLU
@@ -14,38 +15,101 @@ d_relu = np.vectorize(lambda x: 1. if x > 0. else 0.)
 identity = np.vectorize(lambda x: x)
 d_identity = np.vectorize(lambda x: 1)
 
+# ソフトマックス関数
+def softmax(u):
+
+    z = np.zeros(u.shape, dtype=np.float64)
+    for i in range(u.shape[1]):
+        sum_exp = 0.
+
+        z_i = np.zeros((u.shape[0],), dtype=np.float64)
+
+        for j in range(u.shape[0]):
+            z_i[j] = math.exp(u[j, i])
+            sum_exp += z_i[j]
+
+        z[:, i] = z_i / sum_exp
+
+    return z
+
+def d_softmax(u):
+    pass
+    # 実際使わない
 
 # ハイパーパラメータ
-esp_w = 0.005
+esp_w = 0.1
 esp_b = 0.001
 mom = 0.5
-lam = 0.01
+lam = 0.1
 
 # 各層のユニットの数
 # input_layer_n:入力層
 # hidden_layers_n:最後の層が出力層，あとは隠れ層
 input_layer_n = [784]
-hidden_layers_n = [100, 784]
-f = [relu, identity]
-d_f = [d_relu, d_identity]
+hidden_layers_n = [200, 10]
+f = [relu, softmax]
+d_f = [d_relu, d_softmax]
 
 
 # 誤差関数
 def err(y, t):
-    assert y.shape == t.shape
-
     batchsize = y.shape[1]
 
-    er = t - y
-    norm = (er * er).sum()
+    er_sum = 0.
 
-    return (norm / batchsize)
+    for i in range(batchsize):
+        er_sum -= math.log(y[t[i], i])
+
+    return er_sum / batchsize
 
 def d_err(y, t):
     assert y.shape == t.shape
 
     er =  y - t
     return er
+
+
+# 学習に使う教師データを作成
+def create_correctdata(t):
+
+    batchsize = len(t)
+
+    output_t = np.zeros((hidden_layers_n[-1], batchsize), dtype=np.float64)
+
+
+    for i in range(batchsize):
+        output_t[t[i], i] = 1.
+
+
+    return output_t
+
+
+
+
+# 正解数を求める関数
+def calc_accuracy(y, t):
+
+    batchsize = y.shape[1]
+
+    correct_num = 0
+
+    for i in range(batchsize):
+        z = y[:, i]
+
+        correct_num = 0
+        maximum = z[0]
+        for j in range(1, len(z)):
+            if z[j] > maximum:
+                maximum = z[j]
+                correct_num = j
+
+        if correct_num == int(t[i]):
+            correct_num += 1
+
+    return correct_num
+
+
+
 
 # 重みの値
 W = []
@@ -172,17 +236,26 @@ if __name__ == '__main__':
         max_i = N // batchsize
 
         for i in six.moves.range(0, max_i):
-            x_batch = (mnist.data[perm[i * batchsize:(i + 1) * batchsize], :] / 255)
+            perm_batch = perm[i * batchsize:(i + 1) * batchsize]
+            x_batch = mnist.data[perm_batch, :] / 255
+            t_batch = mnist.target[perm_batch].astype(np.uint8)
 
-            
             # x_input = x_batch.transpose(1, 0).astype(np.float64) - mnist_mean_batch
             x_input = x_batch.transpose(1, 0).astype(np.float64)
+            # print(t_batch)
+            t_input = create_correctdata(t_batch)
 
-            y = forward_backward(x_input, x_input)
 
-            sumerr = err(y, x_input)
 
-            print("{} / {}\t{}".format((epoch - 1) * N + (i + 1) * batchsize, n_epoch * N, sumerr))
+            y = forward_backward(x_input, t_input)
 
-        pickle.dump(W, open("W1.dump", "wb"), -1)
-        pickle.dump(B, open("B1.dump", "wb"), -1)
+            # for i in range(batchsize):
+            #     print(y[:, i])
+
+            acc = calc_accuracy(y, t_batch) / batchsize
+            loss = err(y, t_batch)
+
+            print("{} / {}\t{}\t{}".format((epoch - 1) * N + (i + 1) * batchsize, n_epoch * N, acc, loss))
+
+        pickle.dump(W, open("classification_W.dump", "wb"), -1)
+        pickle.dump(B, open("classification_B.dump", "wb"), -1)
